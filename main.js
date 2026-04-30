@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage, clipboard, shell, desktopCapturer } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage, clipboard, shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -214,45 +214,26 @@ async function checkForUpdates() {
 
 // ---------- capture / OCR / parse ----------
 
-async function captureRegion(region) {
-  // Capture via Electron's desktopCapturer instead of spawning the
-  // /usr/sbin/screencapture binary. On unsigned/ad-hoc-signed apps the
-  // child-process attribution to TCC is unreliable: macOS will accept the
-  // grant on IktahMetrics yet still re-prompt for screencapture every
-  // tick. desktopCapturer keeps the work in-process so the TCC check is
-  // against a single bundle (Electron) which gets remembered correctly.
-  const display = screen.getDisplayMatching({
-    x: region.x, y: region.y, width: region.w, height: region.h,
+function captureRegion(region) {
+  // We spawn /usr/sbin/screencapture rather than using Electron's
+  // desktopCapturer because Chromium's screen-capture pipeline silently
+  // fails on macOS Sequoia for unsigned / ad-hoc-signed apps — even with
+  // a valid TCC grant, getSources() returns "Failed to get sources." It
+  // wants entitlements that only proper Developer ID signing can deliver.
+  // Shelling out to screencapture works as long as the parent has a
+  // stable identity (which our ad-hoc signing provides via afterPack).
+  return new Promise((resolve, reject) => {
+    const args = [
+      '-x',
+      `-R${region.x},${region.y},${region.w},${region.h}`,
+      '-t', 'png',
+      TMP_PNG,
+    ];
+    execFile('/usr/sbin/screencapture', args, (err) => {
+      if (err) return reject(new Error(`screencapture failed: ${err.message}`));
+      resolve(TMP_PNG);
+    });
   });
-  const sf = display.scaleFactor || 1;
-  // Request the source at the display's native pixel resolution so the
-  // crop coords below land on real pixels.
-  const sources = await desktopCapturer.getSources({
-    types: ['screen'],
-    thumbnailSize: {
-      width: Math.round(display.size.width * sf),
-      height: Math.round(display.size.height * sf),
-    },
-  });
-  const source = sources.find(s => Number(s.display_id) === display.id) || sources[0];
-  if (!source || !source.thumbnail || source.thumbnail.isEmpty()) {
-    throw new Error('desktopCapturer returned no usable thumbnail (Screen Recording permission?)');
-  }
-  // Region coords are global DIPs (origin = primary display top-left).
-  // Convert to display-local pixels for the crop.
-  const localX = (region.x - display.bounds.x) * sf;
-  const localY = (region.y - display.bounds.y) * sf;
-  const cropped = source.thumbnail.crop({
-    x: Math.max(0, Math.round(localX)),
-    y: Math.max(0, Math.round(localY)),
-    width: Math.max(1, Math.round(region.w * sf)),
-    height: Math.max(1, Math.round(region.h * sf)),
-  });
-  if (cropped.isEmpty()) {
-    throw new Error('crop produced an empty image (region off-screen?)');
-  }
-  fs.writeFileSync(TMP_PNG, cropped.toPNG());
-  return TMP_PNG;
 }
 
 function runOcr(imagePath) {

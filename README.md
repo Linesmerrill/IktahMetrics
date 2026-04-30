@@ -17,8 +17,8 @@ via a tiny Swift helper. No paid APIs, nothing leaves your machine.
 ## Stack
 
 - Electron menu-bar app (frameless transparent overlay window)
-- Electron `desktopCapturer` API for region capture (in-process; keeps
-  TCC happy on unsigned builds — see [Permissions](#permissions))
+- macOS `/usr/sbin/screencapture -R` for region capture, with the parent
+  Electron process ad-hoc codesigned for stable TCC attribution
 - Swift CLI (`swift/ocr.swift`) wrapping `VNRecognizeTextRequest`,
   `NSWorkspace.frontmostApplication`, and `CGWindowListCopyWindowInfo`
 - Vanilla HTML/CSS/JS in the renderer
