@@ -20,6 +20,7 @@
   "build": {
     "appId": "com.merrill.iktahmetrics",
     "productName": "IktahMetrics",
+    "afterPack": "./scripts/after-pack.js",
     "directories": {
       "output": "dist"
     },
@@ -50,8 +51,9 @@
       ],
       "icon": "assets/icon.png",
       "category": "public.app-category.utilities",
-      "hardenedRuntime": true,
+      "hardenedRuntime": false,
       "gatekeeperAssess": false,
+      "identity": null,
       "extendInfo": {
         "NSScreenCaptureUsageDescription": "IktahMetrics captures a small region of your screen to read XP and time numbers from Idle Iktah."
       },

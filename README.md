@@ -147,6 +147,27 @@ All under `~/Library/Application Support/IktahMetrics/`:
 - `remote-thresholds.json` — cache of the community thresholds file
 - `settings.json` — misc settings
 
+## Installing the DMG
+
+IktahMetrics isn't notarized by Apple (no Developer ID — that's $99/year),
+so macOS will warn you on first launch. Two extra steps:
+
+1. **Drag the `.app` to `/Applications`** before launching. Don't run it
+   from the mounted DMG — macOS "translocates" apps run from disk images
+   to a random temp path, which makes Screen Recording permission grants
+   stick to the wrong location.
+2. On first launch macOS says *"…cannot be opened because it is from an
+   unidentified developer / could be malware"*. **Right-click → Open**
+   (or in System Settings → Privacy & Security, click **Open Anyway**).
+   Or, from a terminal:
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/IktahMetrics.app
+   ```
+
+The release build is **ad-hoc codesigned** in CI, which gives the bundle
+a stable identity so TCC remembers your Screen Recording grant across
+launches *of the same release*. New releases re-prompt once.
+
 ## Permissions
 
 Capturing the screen requires **Screen Recording** permission on macOS 10.15+.
@@ -157,6 +178,14 @@ Capturing the screen requires **Screen Recording** permission on macOS 10.15+.
 - In dev (`npm start`), permission is requested for **Electron** itself
   (or your terminal, depending on how Electron was launched). You may need
   to toggle it off/on once after the first prompt.
+- **Permission re-prompts in a loop?** That's TCC failing to match the
+  bundle's signature against its grant record. Reset the entry and try
+  again:
+  ```sh
+  tccutil reset ScreenCapture com.merrill.iktahmetrics
+  ```
+  Then relaunch and grant once more. If it still loops, make sure the
+  app is in `/Applications` (not running from the DMG).
 
 The overlay window itself is excluded from screen captures
 (`NSWindow.sharingType = .none`), so its readout doesn't pollute the OCR
@@ -177,10 +206,12 @@ when packaged, `./build/ocr` in dev). `package.json`'s
 `build.mac.x64ArchFiles: "Contents/Resources/ocr"` tells `@electron/universal`
 to accept the already-lipo'd helper.
 
-> **Note:** for distribution outside your own machine you'll want to codesign
-> + notarize the app and the embedded `ocr` helper. electron-builder handles
-> the app side if you set `CSC_*` env vars; the helper inherits the hardened
-> runtime via the bundle.
+> **Note:** the release pipeline currently does ad-hoc codesigning only
+> (`scripts/after-pack.js` runs `codesign --force --deep --sign -` on the
+> `.app`). For Gatekeeper-friendly distribution outside your own machine
+> you'll want a real Apple Developer ID + notarization. electron-builder
+> handles the signing side if you set `CSC_LINK` + `CSC_KEY_PASSWORD`,
+> and `notarize` config for notarization.
 
 ## Parsing details
 
