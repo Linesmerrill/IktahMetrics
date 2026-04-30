@@ -236,6 +236,41 @@ function getFrontmostApp() {
   });
 }
 
+function listWindows() {
+  return new Promise((resolve) => {
+    execFile(ocrBinaryPath(), ['--list-windows'], { timeout: 1500 }, (err, stdout) => {
+      if (err) return resolve([]);
+      const wins = (stdout || '').trim().split('\n').filter(Boolean).map(line => {
+        const p = line.split('\t');
+        return {
+          pid: parseInt(p[0], 10),
+          bundleId: p[1] || '',
+          owner: p[2] || '',
+          title: p[3] || '',
+          x: parseInt(p[4], 10),
+          y: parseInt(p[5], 10),
+          w: parseInt(p[6], 10),
+          h: parseInt(p[7], 10),
+        };
+      });
+      resolve(wins);
+    });
+  });
+}
+
+async function getTargetWindowBounds(owner, bundleId) {
+  const wins = await listWindows();
+  // Match by bundleId if available (more stable across renames), fall back
+  // to owner name. Pick the largest matching window — multi-window apps
+  // tend to have one main game window plus tooltips/popovers.
+  let matches = bundleId ? wins.filter(w => w.bundleId === bundleId) : [];
+  if (matches.length === 0) matches = wins.filter(w => w.owner === owner);
+  if (matches.length === 0) return null;
+  matches.sort((a, b) => (b.w * b.h) - (a.w * a.h));
+  const top = matches[0];
+  return { x: top.x, y: top.y, w: top.w, h: top.h };
+}
+
 function parseInfo(text) {
   if (!text) return null;
   const cleaned = text.replace(/~/g, '');
@@ -377,8 +412,19 @@ function isStale() {
 }
 
 async function tryRealOcr() {
-  const region = loadRegion();
+  let region = loadRegion();
   if (!region) return { ok: false, reason: 'no region' };
+
+  // Window-tracking regions resolve to live bounds each tick — so capture
+  // follows the game window when the user moves or resizes it.
+  if (region.mode === 'window') {
+    const bounds = await getTargetWindowBounds(region.owner, region.bundleId);
+    if (!bounds) {
+      return { ok: false, reason: `${region.owner} window not visible` };
+    }
+    region = { ...region, ...bounds };
+  }
+
   try {
     await captureRegion(region);
     const text = await runOcr(TMP_PNG);
@@ -542,9 +588,19 @@ function rebuildMenu() {
       click: () => (polling ? stopPolling() : startPolling()),
     },
     {
-      label: region
-        ? `Set Region… (${region.w}×${region.h})`
-        : 'Set Region…',
+      label: region?.mode === 'window'
+        ? `Tracking: ${region.owner} (auto-bounds)`
+        : region
+          ? `Region: ${region.w}×${region.h} fixed`
+          : 'No region set',
+      enabled: false,
+    },
+    {
+      label: 'Track App Window…',
+      click: () => trackAppWindowFlow(),
+    },
+    {
+      label: 'Set Fixed Region…',
       click: () => pickRegionFlow(),
     },
     {
@@ -583,12 +639,6 @@ function rebuildMenu() {
       type: 'checkbox',
       checked: overlayPrefs.visible,
       click: (item) => setOverlayVisible(item.checked),
-    },
-    {
-      label: region?.targetApp
-        ? `Target app: ${region.targetApp}`
-        : 'Target app: (none — will retry on next region pick)',
-      enabled: false,
     },
     { type: 'separator' },
     ...buildUpdateMenuItems(),
@@ -739,6 +789,86 @@ function virtualDesktopBounds() {
   const maxX = Math.max(...displays.map(d => d.bounds.x + d.bounds.width));
   const maxY = Math.max(...displays.map(d => d.bounds.y + d.bounds.height));
   return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+// ---------- app picker (track an app's window dynamically) ----------
+
+let appPickerWindow = null;
+
+function pickAppFlow() {
+  return new Promise((resolve) => {
+    if (appPickerWindow) {
+      appPickerWindow.focus();
+      resolve(null);
+      return;
+    }
+    appPickerWindow = new BrowserWindow({
+      width: 380,
+      height: 480,
+      frame: false,
+      transparent: true,
+      alwaysOnTop: true,
+      resizable: true,
+      movable: true,
+      minimizable: false,
+      fullscreenable: false,
+      skipTaskbar: true,
+      hasShadow: true,
+      backgroundColor: '#00000000',
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+    appPickerWindow.setAlwaysOnTop(true, 'floating');
+    appPickerWindow.loadFile(path.join(__dirname, 'src', 'app-picker.html'));
+    appPickerWindow.webContents.once('did-finish-load', async () => {
+      const wins = await listWindows();
+      if (appPickerWindow && !appPickerWindow.isDestroyed()) {
+        appPickerWindow.webContents.send('app-list', wins);
+      }
+    });
+
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      ipcMain.removeListener('app-picker:select', onSelect);
+      ipcMain.removeListener('app-picker:cancel', onCancel);
+      if (appPickerWindow && !appPickerWindow.isDestroyed()) appPickerWindow.close();
+      appPickerWindow = null;
+      resolve(result);
+    };
+    const onSelect = (_e, data) => finish(data);
+    const onCancel = () => finish(null);
+    ipcMain.on('app-picker:select', onSelect);
+    ipcMain.on('app-picker:cancel', onCancel);
+    appPickerWindow.on('closed', () => {
+      appPickerWindow = null;
+      if (!settled) finish(null);
+    });
+  });
+}
+
+async function trackAppWindowFlow() {
+  const wasPolling = polling;
+  if (wasPolling) stopPolling();
+  const choice = await pickAppFlow();
+  if (!choice) {
+    if (wasPolling && loadRegion()) startPolling();
+    else { updateTrayTitle(); rebuildMenu(); }
+    return;
+  }
+  saveRegion({
+    mode: 'window',
+    owner: choice.owner,
+    bundleId: choice.bundleId || '',
+  });
+  resetBests();
+  lastInfo = {};
+  if (wasPolling || !polling) startPolling();
+  else { updateTrayTitle(); rebuildMenu(); }
 }
 
 function pickRegionFlow() {

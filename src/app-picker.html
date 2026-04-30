@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>IktahMetrics · Track App</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      background: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      color: #f2f3f7;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow: hidden;
+    }
+    #card {
+      margin: 6px;
+      padding: 14px 16px;
+      background: rgba(18, 19, 26, 0.92);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+      max-height: calc(100vh - 12px);
+      display: flex;
+      flex-direction: column;
+      -webkit-app-region: drag;
+    }
+    h1 {
+      font-size: 13px;
+      font-weight: 600;
+      margin: 0 0 4px;
+      color: #cdd0db;
+    }
+    .hint {
+      font-size: 11px;
+      color: #9da1ad;
+      margin-bottom: 10px;
+    }
+    #list {
+      overflow-y: auto;
+      flex: 1;
+      max-height: 360px;
+      -webkit-app-region: no-drag;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.18);
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .row:hover { background: rgba(255, 255, 255, 0.07); }
+    .row:active { background: rgba(74, 209, 255, 0.18); }
+    .col { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+    .name {
+      font-size: 13px;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .title {
+      font-size: 11px;
+      color: #9da1ad;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .meta {
+      font-size: 11px;
+      color: #9da1ad;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .empty {
+      color: #9da1ad;
+      padding: 20px;
+      text-align: center;
+      font-size: 13px;
+    }
+    .footer {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+      margin-top: 10px;
+      -webkit-app-region: no-drag;
+    }
+    button {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #e8eaf0;
+      padding: 6px 14px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    button:hover { background: rgba(255, 255, 255, 0.14); }
+  </style>
+</head>
+<body>
+  <div id="card">
+    <h1>Track an app's window</h1>
+    <div class="hint">IktahMetrics will follow this window's position and size automatically.</div>
+    <div id="list" tabindex="0"><div class="empty">Loading windows…</div></div>
+    <div class="footer">
+      <button id="cancel">Cancel</button>
+    </div>
+  </div>
+  <script src="app-picker.js"></script>
+</body>
+</html>

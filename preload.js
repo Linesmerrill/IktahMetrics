@@ -9,4 +9,9 @@ contextBridge.exposeInMainWorld('iktahmetrics', {
   // Region picker window.
   pickerSubmit: (rect) => ipcRenderer.send('picker:done', rect),
   pickerCancel: () => ipcRenderer.send('picker:cancel'),
+
+  // App picker window (track-app-window flow).
+  onAppList: (cb) => ipcRenderer.on('app-list', (_e, list) => cb(list)),
+  appPickerSelect: (data) => ipcRenderer.send('app-picker:select', data),
+  appPickerCancel: () => ipcRenderer.send('app-picker:cancel'),
 });
