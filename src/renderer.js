@@ -44,7 +44,7 @@ function setError(msg) {
   rateEl.textContent = msg;
 }
 
-window.gruntrate.onUpdate((u) => {
+window.iktahmetrics.onUpdate((u) => {
   document.body.classList.toggle('extrapolated', !!u.extrapolated);
 
   const icon = u.skill && SKILL_ICONS[u.skill] ? SKILL_ICONS[u.skill] + ' ' : '';

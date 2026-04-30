@@ -1,6 +1,6 @@
 {
   "name": "idle-iktah-overlay",
-  "productName": "GruntRate",
+  "productName": "IktahMetrics",
   "version": "0.1.0",
   "description": "Always-on-top XP/sec overlay for Idle Iktah, using Apple Vision OCR",
   "main": "main.js",
@@ -18,8 +18,8 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.merrill.gruntrate",
-    "productName": "GruntRate",
+    "appId": "com.merrill.iktahmetrics",
+    "productName": "IktahMetrics",
     "directories": {
       "output": "dist"
     },
@@ -45,7 +45,7 @@
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "extendInfo": {
-        "NSScreenCaptureUsageDescription": "GruntRate captures a small region of your screen to read XP and time numbers from Idle Iktah."
+        "NSScreenCaptureUsageDescription": "IktahMetrics captures a small region of your screen to read XP and time numbers from Idle Iktah."
       },
       "x64ArchFiles": "Contents/Resources/ocr"
     },

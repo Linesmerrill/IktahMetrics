@@ -41,12 +41,12 @@ window.addEventListener('mouseup', (e) => {
   const r = rectFromPoints(start, { x: e.clientX, y: e.clientY });
   start = null;
   if (r.w < 6 || r.h < 6) {
-    window.gruntrate.pickerCancel();
+    window.iktahmetrics.pickerCancel();
     return;
   }
-  window.gruntrate.pickerSubmit(r);
+  window.iktahmetrics.pickerSubmit(r);
 });
 
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') window.gruntrate.pickerCancel();
+  if (e.key === 'Escape') window.iktahmetrics.pickerCancel();
 });

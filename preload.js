@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('gruntrate', {
+contextBridge.exposeInMainWorld('iktahmetrics', {
   // Overlay window: subscribe to live updates from main.
   onUpdate: (cb) => {
     ipcRenderer.on('overlay:update', (_e, payload) => cb(payload));

@@ -97,13 +97,13 @@ jobs:
           fi
 
           cat > release_notes.md << 'EOF'
-          ## GruntRate ${{ steps.version.outputs.tag }}
+          ## IktahMetrics ${{ steps.version.outputs.tag }}
 
           Always-on-top XP/sec overlay for Idle Iktah, with Apple Vision OCR.
 
           ### Installation
           1. Download the `.dmg` file below
-          2. Open it and drag **GruntRate** to your Applications folder
+          2. Open it and drag **IktahMetrics** to your Applications folder
           3. Launch the app and grant **Screen Recording** permission on first run
           4. Click the menu-bar icon → **Set Region…** to pick the activity card
 
@@ -118,7 +118,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: GruntRate ${{ steps.version.outputs.tag }}
+          name: IktahMetrics ${{ steps.version.outputs.tag }}
           body_path: release_notes.md
           draft: false
           prerelease: false

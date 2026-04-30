@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const { execFile } = require('node:child_process');
 
-const TMP_PNG = path.join(os.tmpdir(), 'gruntrate-capture.png');
+const TMP_PNG = path.join(os.tmpdir(), 'iktahmetrics-capture.png');
 const POLL_MS = 1000;
 const FOCUS_POLL_MS = 750;
 
@@ -592,7 +592,7 @@ function rebuildMenu() {
     },
     { type: 'separator' },
     ...buildUpdateMenuItems(),
-    { label: 'Quit GruntRate', accelerator: 'CommandOrControl+Q', click: () => app.quit() },
+    { label: 'Quit IktahMetrics', accelerator: 'CommandOrControl+Q', click: () => app.quit() },
   ];
   tray.setContextMenu(Menu.buildFromTemplate(template));
 }
@@ -641,7 +641,7 @@ function formatDuration(s) {
 function createTray() {
   tray = new Tray(nativeImage.createEmpty());
   tray.setTitle('XPS');
-  tray.setToolTip('GruntRate · Idle Iktah XP/sec');
+  tray.setToolTip('IktahMetrics · Idle Iktah XP/sec');
   rebuildMenu();
 }
 
@@ -796,7 +796,7 @@ function pickRegionFlow() {
       // Capture target app: brief delay so focus can return to the game.
       await new Promise(r => setTimeout(r, 350));
       const front = await getFrontmostApp();
-      const myBundleId = 'com.merrill.gruntrate';
+      const myBundleId = 'com.merrill.iktahmetrics';
       if (front && front.bundleId && front.bundleId !== myBundleId
           && !front.bundleId.startsWith('com.github.Electron')) {
         region.targetApp = front.name;

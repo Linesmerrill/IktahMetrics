@@ -1,4 +1,4 @@
-# GruntRate · Idle Iktah XP/sec overlay
+# IktahMetrics · Idle Iktah XP/sec overlay
 
 A small **macOS menu bar app** that watches a region of your Idle Iktah window,
 OCRs the live `~X xp / Y seconds` line, and shows the resulting
@@ -22,7 +22,7 @@ via a tiny Swift helper. No paid APIs, nothing leaves your machine.
 ```
 .
 ├── main.js                # Electron main process + IPC + capture/OCR pipeline
-├── preload.js             # contextBridge surface (window.gruntrate.*)
+├── preload.js             # contextBridge surface (window.iktahmetrics.*)
 ├── package.json           # electron + electron-builder
 ├── src/
 │   ├── index.html         # overlay UI
@@ -59,7 +59,7 @@ You can test the OCR helper on its own:
 
 ## Usage
 
-GruntRate lives in the macOS menu bar — no Dock icon, no floating window
+IktahMetrics lives in the macOS menu bar — no Dock icon, no floating window
 unless you ask for one.
 
 1. Launch the app. `XPS` appears in the menu bar.
@@ -72,19 +72,19 @@ unless you ask for one.
 5. **Show Overlay** toggles a frameless, draggable, resizable card with a
    bigger readout. Drag anywhere on the card to move it; drag the SE corner
    (or any edge) to resize. Position and size persist across launches.
-6. **Quit GruntRate** (<kbd>⌘Q</kbd>) exits.
+6. **Quit IktahMetrics** (<kbd>⌘Q</kbd>) exits.
 
 State persists across launches:
-- region: `~/Library/Application Support/GruntRate/region.json`
-- overlay visibility + bounds: `~/Library/Application Support/GruntRate/overlay.json`
+- region: `~/Library/Application Support/IktahMetrics/region.json`
+- overlay visibility + bounds: `~/Library/Application Support/IktahMetrics/overlay.json`
 
 ## Permissions
 
 Capturing the screen requires **Screen Recording** permission on macOS 10.15+.
 
-- On first capture, macOS prompts: allow GruntRate (and re-launch if needed).
+- On first capture, macOS prompts: allow IktahMetrics (and re-launch if needed).
 - If you skipped the prompt, grant manually:
-  **System Settings → Privacy & Security → Screen Recording → enable GruntRate**.
+  **System Settings → Privacy & Security → Screen Recording → enable IktahMetrics**.
 - In dev (`npm start`), permission is requested for **Electron** itself
   (or your terminal, depending on how Electron was launched). You may need
   to toggle it off/on once after the first prompt.
