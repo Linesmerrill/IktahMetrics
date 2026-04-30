@@ -1,0 +1,136 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main]
+
+# Prevent concurrent builds
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    # Skip builds triggered by the version bump commit
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine next version
+        id: version
+        run: |
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE_VERSION"
+
+          # Find the highest existing tag with this major.minor prefix
+          HIGHEST_PATCH=$(git tag -l "v${MAJOR}.${MINOR}.*" | sed "s/v${MAJOR}\.${MINOR}\.//" | sort -n | tail -1)
+
+          if [ -z "$HIGHEST_PATCH" ]; then
+            NEXT_VERSION="$BASE_VERSION"
+          else
+            NEXT_PATCH=$((HIGHEST_PATCH + 1))
+            if [ "$NEXT_PATCH" -lt "$PATCH" ]; then
+              NEXT_PATCH=$PATCH
+            fi
+            NEXT_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}"
+          fi
+
+          echo "version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$NEXT_VERSION" >> $GITHUB_OUTPUT
+          echo "Next version: $NEXT_VERSION"
+
+          if [ "$NEXT_VERSION" != "$BASE_VERSION" ]; then
+            echo "bumped=true" >> $GITHUB_OUTPUT
+          else
+            echo "bumped=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update package.json version
+        run: |
+          node -e "
+            const pkg = require('./package.json');
+            pkg.version = '${{ steps.version.outputs.version }}';
+            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+      - name: Build OCR helper (universal binary)
+        run: bash swift/build.sh
+
+      - name: Build DMG
+        run: npx electron-builder --mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Find DMG file
+        id: dmg
+        run: |
+          DMG_PATH=$(find dist -name "*.dmg" -type f | head -1)
+          DMG_NAME=$(basename "$DMG_PATH")
+          echo "path=$DMG_PATH" >> $GITHUB_OUTPUT
+          echo "name=$DMG_NAME" >> $GITHUB_OUTPUT
+          echo "Found DMG: $DMG_PATH"
+
+      - name: Generate release notes
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --oneline --no-merges | head -20)
+          else
+            COMMITS=$(git log --oneline --no-merges "$LAST_TAG"..HEAD | head -20)
+          fi
+
+          cat > release_notes.md << 'EOF'
+          ## GruntRate ${{ steps.version.outputs.tag }}
+
+          Always-on-top XP/sec overlay for Idle Iktah, with Apple Vision OCR.
+
+          ### Installation
+          1. Download the `.dmg` file below
+          2. Open it and drag **GruntRate** to your Applications folder
+          3. Launch the app and grant **Screen Recording** permission on first run
+          4. Click the menu-bar icon → **Set Region…** to pick the activity card
+
+          ### Changes
+          EOF
+
+          echo "$COMMITS" | while read -r line; do
+            echo "- $line" >> release_notes.md
+          done
+
+      - name: Create Release and Upload DMG
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: GruntRate ${{ steps.version.outputs.tag }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          files: ${{ steps.dmg.outputs.path }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit version bump back to repo
+        if: steps.version.outputs.bumped == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.version }} [skip ci]"
+          git push

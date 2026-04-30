@@ -1,0 +1,6 @@
+node_modules/
+dist/
+build/ocr
+build/ocr-*
+.DS_Store
+*.log

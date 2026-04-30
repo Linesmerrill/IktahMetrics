@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "description": "Idle Iktah XP thresholds shared across GruntRate users. thresholds[skill][level] = total accumulated XP needed to reach that level. Used to compute within-level progress and ETA.",
+    "schemaVersion": 1,
+    "rawUrl": "https://raw.githubusercontent.com/Linesmerrill/IktahMetrics/main/data/thresholds.json",
+    "contribute": "GruntRate menu → 'Copy Observed Thresholds' copies your local-only observations to the clipboard. Paste them into a PR / issue on https://github.com/Linesmerrill/IktahMetrics to add them here."
+  },
+  "Fishing": {
+    "36": 18907,
+    "37": 20940,
+    "38": 23184
+  }
+}

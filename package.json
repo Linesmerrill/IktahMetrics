@@ -1,0 +1,55 @@
+{
+  "name": "idle-iktah-overlay",
+  "productName": "GruntRate",
+  "version": "0.1.0",
+  "description": "Always-on-top XP/sec overlay for Idle Iktah, using Apple Vision OCR",
+  "main": "main.js",
+  "private": true,
+  "author": "merrill",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build:ocr": "bash swift/build.sh",
+    "dist": "npm run build:ocr && electron-builder --mac",
+    "pack": "npm run build:ocr && electron-builder --mac --dir"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.merrill.gruntrate",
+    "productName": "GruntRate",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "data/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/ocr",
+        "to": "ocr",
+        "filter": ["**/*"]
+      }
+    ],
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["universal"] }
+      ],
+      "category": "public.app-category.utilities",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "extendInfo": {
+        "NSScreenCaptureUsageDescription": "GruntRate captures a small region of your screen to read XP and time numbers from Idle Iktah."
+      }
+    },
+    "dmg": {
+      "writeUpdateInfo": false
+    }
+  }
+}
