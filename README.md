@@ -173,26 +173,46 @@ so macOS will warn you on first launch. Two extra steps:
    xattr -dr com.apple.quarantine /Applications/IktahMetrics.app
    ```
 
-The release build is signed in CI. By default, the workflow does **ad-hoc
-codesigning** — the signature is derived from the app's contents, so it
-stays stable across launches of the same release but **changes between
-releases**. macOS TCC will then re-prompt for Screen Recording on every
-update.
+The release build is signed in CI. The signing path depends on which repo
+secrets are configured:
 
-To make TCC grants persist across updates, store a **self-signed code
-signing certificate** in repo secrets — every release then shares an
-identity, and TCC remembers your grant across updates.
+| Secrets configured                                                      | Result                                                                                |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| _(none)_                                                                | Ad-hoc signing only. Gatekeeper warns; TCC grants reset on every update.             |
+| `CSC_LINK` + `CSC_KEY_PASSWORD`                                         | Apple Developer ID signing. Gatekeeper still warns once; TCC grants persist.          |
+| `+ APPLE_ID` + `APPLE_ID_PASSWORD` + `APPLE_TEAM_ID`                    | Signed **and notarized**. No Gatekeeper warning at all; TCC grants persist.           |
 
-```sh
-bash scripts/make-codesign-cert.sh
-# Add the printed CSC_LINK and CSC_KEY_PASSWORD to:
-#   github.com/Linesmerrill/IktahMetrics/settings/secrets/actions
-```
+### Setup (Developer ID signing)
 
-The cert is self-signed (not from Apple), so the "unidentified developer"
-warning still appears once on first install — but **the permission loop
-on updates goes away** because TCC matches releases by signing identity,
-not by content hash.
+1. In the [Apple Developer portal](https://developer.apple.com/account/resources/certificates/list),
+   create a **Developer ID Application** certificate. Download and
+   double-click to install it into Keychain Access.
+2. In Keychain Access, find the cert (under **My Certificates** or
+   **login → My Certificates**), right-click → **Export…**, save as
+   `.p12` with a password.
+3. Encode and copy:
+   ```sh
+   base64 < cert.p12 | pbcopy
+   ```
+4. Add as repo secrets at
+   <https://github.com/Linesmerrill/IktahMetrics/settings/secrets/actions>:
+   - `CSC_LINK` — paste the base64
+   - `CSC_KEY_PASSWORD` — the export password from step 2
+
+### Setup (notarization, optional)
+
+5. Create an **app-specific password** at
+   <https://account.apple.com/account/manage> → **Sign-In and Security**
+   → **App-Specific Passwords**.
+6. Find your Team ID at <https://developer.apple.com/account> →
+   **Membership Details**.
+7. Add three more secrets:
+   - `APPLE_ID` — your Apple ID email
+   - `APPLE_ID_PASSWORD` — the app-specific password from step 5
+   - `APPLE_TEAM_ID` — the 10-character team ID from step 6
+
+After secrets are saved, the next push to `main` produces a signed
+(and optionally notarized) DMG.
 
 ## Permissions
 

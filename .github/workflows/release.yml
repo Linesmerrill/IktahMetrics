@@ -77,14 +77,23 @@ jobs:
         run: npx electron-builder --mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Optional: stored self-signed cert for stable code signing across
-          # releases. When set, electron-builder imports the .p12 into a
-          # temp keychain and signs with that identity, so macOS TCC
-          # remembers Screen Recording grants between updates. When unset,
-          # scripts/after-pack.js falls back to ad-hoc signing.
-          # Generate with: bash scripts/make-codesign-cert.sh
+          # Apple Developer ID Application certificate (.p12 base64-encoded
+          # via `base64 < cert.p12 | pbcopy`) and its export password.
+          # Required to give every release a stable signing identity so
+          # macOS TCC remembers Screen Recording grants across updates,
+          # and so Gatekeeper accepts the .app on first launch. When unset,
+          # scripts/after-pack.js falls back to ad-hoc signing (and TCC
+          # grants do not persist across releases).
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # Optional: app-specific Apple ID password + team ID to also
+          # notarize the build. Without these, the app is signed but not
+          # notarized — Gatekeeper still warns once on first launch.
+          # APPLE_ID_PASSWORD is the app-specific password from
+          # https://account.apple.com/account/manage → Sign-In and Security.
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: List DMG files
         id: dmg

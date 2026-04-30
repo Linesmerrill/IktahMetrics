@@ -54,8 +54,10 @@
       ],
       "icon": "assets/icon.png",
       "category": "public.app-category.utilities",
-      "hardenedRuntime": false,
+      "hardenedRuntime": true,
       "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "extendInfo": {
         "NSScreenCaptureUsageDescription": "IktahMetrics captures a small region of your screen to read XP and time numbers from Idle Iktah."
       }
