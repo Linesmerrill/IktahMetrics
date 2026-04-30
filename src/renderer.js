@@ -75,20 +75,19 @@ window.iktahmetrics.onUpdate((u) => {
   // otherwise fall back to the raw "current / next" — without a percent,
   // since that ratio is misleading (the game shows accumulated total xp).
   if (u.curXp != null && u.totalXp) {
+    // Display the same numbers the game shows (cur / next-level total).
+    // Bar fill, when we know the previous level's threshold, reflects
+    // *within-level* progress so it matches the in-game bar visually.
+    let pct;
     if (u.prevLevelXp != null && u.totalXp > u.prevLevelXp) {
       const inLevel = Math.max(0, u.curXp - u.prevLevelXp);
       const levelSpan = u.totalXp - u.prevLevelXp;
-      const pct = Math.min(100, (inLevel / levelSpan) * 100);
-      progressFill.style.width = pct.toFixed(1) + '%';
-      progressText.textContent = `${fmt(inLevel)} / ${fmt(levelSpan)} xp · ${pct.toFixed(1)}%`;
+      pct = Math.min(100, (inLevel / levelSpan) * 100);
     } else {
-      // Don't yet know the previous level's threshold — show total-xp
-      // progress as a fallback. Once a level-up is observed we'll switch
-      // to within-level math automatically.
-      const pct = Math.min(100, (u.curXp / u.totalXp) * 100);
-      progressFill.style.width = pct.toFixed(1) + '%';
-      progressText.textContent = `${fmt(u.curXp)} / ${fmt(u.totalXp)} xp · ${pct.toFixed(1)}%`;
+      pct = Math.min(100, (u.curXp / u.totalXp) * 100);
     }
+    progressFill.style.width = pct.toFixed(1) + '%';
+    progressText.textContent = `${fmt(u.curXp)} / ${fmt(u.totalXp)} xp · ${pct.toFixed(1)}%`;
   } else {
     progressFill.style.width = '0%';
     progressText.textContent = '—';
