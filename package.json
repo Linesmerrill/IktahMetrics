@@ -58,6 +58,9 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": {
+        "teamId": "$APPLE_TEAM_ID"
+      },
       "extendInfo": {
         "NSScreenCaptureUsageDescription": "IktahMetrics captures a small region of your screen to read XP and time numbers from Idle Iktah."
       }
