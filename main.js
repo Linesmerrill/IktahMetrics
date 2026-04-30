@@ -48,6 +48,7 @@ let inflight = false;
 
 let lastInfo = {};
 let lastStatus = '—';
+let lastOcrText = ''; // most recent raw OCR output, kept for debugging
 
 let bests = {}; // session-only, in-memory
 
@@ -278,11 +279,22 @@ function parseInfo(text) {
   const out = {};
 
   // --- rate ---
+  // Sanity-bound the parsed rate. Idle Iktah skills realistically yield
+  // somewhere between ~0.01 xp/s (slow gathering) and a few xp/s. If we
+  // get something wildly out of range, OCR has misread digits — drop it
+  // and let extrapolation hold the line until a sensible sample lands.
   const rate = cleaned.match(RATE_REGEX);
   if (rate) {
-    out.xp = parseFloat(rate[1]);
-    out.sec = parseFloat(rate[2]);
-    if (out.sec > 0) out.rate = out.xp / out.sec;
+    const xp = parseFloat(rate[1]);
+    const sec = parseFloat(rate[2]);
+    if (sec > 0 && xp > 0) {
+      const r = xp / sec;
+      if (r >= 0.01 && r <= 50) {
+        out.xp = xp;
+        out.sec = sec;
+        out.rate = r;
+      }
+    }
   }
 
   // --- level + xp progress ---
@@ -428,6 +440,7 @@ async function tryRealOcr() {
   try {
     await captureRegion(region);
     const text = await runOcr(TMP_PNG);
+    lastOcrText = text || '';
     const info = parseInfo(text) || {};
     if (!info.skill && lastInfo?.skill) info.skill = lastInfo.skill;
     if (info.rate == null) return { ok: false, reason: 'no match' };
@@ -617,6 +630,35 @@ function rebuildMenu() {
         });
       },
     },
+    {
+      label: 'Reset Tracking',
+      enabled: !!(lastInfo?.rate || Object.keys(bests).length),
+      click: () => {
+        lastInfo = {};
+        lastRealAt = 0;
+        resetBests();
+        lastStatus = 'reset';
+        pushUpdate({ kind: 'idle', message: 'reset' });
+        updateTrayTitle();
+        rebuildMenu();
+      },
+    },
+    { type: 'separator' },
+    {
+      label: 'Reveal Last Capture in Finder',
+      enabled: fs.existsSync(TMP_PNG),
+      click: () => shell.showItemInFolder(TMP_PNG),
+    },
+    {
+      label: 'Save Last OCR Output…',
+      enabled: !!lastOcrText,
+      click: () => {
+        const out = path.join(os.tmpdir(), 'iktahmetrics-last-ocr.txt');
+        fs.writeFileSync(out, lastOcrText || '(empty)');
+        shell.openPath(out);
+      },
+    },
+    { type: 'separator' },
     {
       label: 'Share Observed Thresholds…',
       enabled: Object.keys(localObservationsForSharing()).length > 0,
