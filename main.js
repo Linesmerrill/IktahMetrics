@@ -21,6 +21,22 @@ const KNOWN_SKILLS = [
   'Carpentry', 'Community', 'Landkeeping',
 ];
 const SKILL_LOOKUP = new Map(KNOWN_SKILLS.map(s => [s.toLowerCase(), s]));
+
+// Vision sometimes returns Cyrillic homoglyphs for Latin letters in pixel-art
+// fonts (most commonly `х` U+0445 in place of `x` U+0078, breaking our rate
+// regex). Map each one back to its Latin twin before parsing.
+const CYRILLIC_TO_LATIN = {
+  'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'у': 'y', 'х': 'x',
+  'А': 'A', 'Е': 'E', 'О': 'O', 'Р': 'P', 'С': 'C', 'У': 'Y', 'Х': 'X',
+};
+
+function normalizeOcr(text) {
+  if (!text) return '';
+  return text
+    .replace(/~/g, '')
+    .replace(/[а-яА-ЯёЁ]/g, ch => CYRILLIC_TO_LATIN[ch] || ch);
+}
+
 const SKILL_ICONS = {
   Attack: '⚔️', Strength: '💪', Defence: '🛡️', Defense: '🛡️', Health: '❤️',
   Woodcutting: '🪓', Mining: '⛏️', Fishing: '🎣', Gathering: '🌿', Tracking: '👣',
@@ -274,7 +290,7 @@ async function getTargetWindowBounds(owner, bundleId) {
 
 function parseInfo(text) {
   if (!text) return null;
-  const cleaned = text.replace(/~/g, '');
+  const cleaned = normalizeOcr(text);
   const lines = cleaned.split(/\r?\n/);
   const out = {};
 
@@ -778,6 +794,10 @@ function createOverlayWindow() {
   overlayWindow = new BrowserWindow(opts);
   overlayWindow.setAlwaysOnTop(true, 'floating');
   overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  // Exclude the overlay from screen captures (sets NSWindow.sharingType = .none
+  // on macOS). Our own readout would otherwise be OCR'd back into the parser
+  // and confuse skill detection.
+  overlayWindow.setContentProtection(true);
   overlayWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
 
   const persistBounds = () => {
