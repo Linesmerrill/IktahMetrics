@@ -19,6 +19,13 @@ const path = require('node:path');
 exports.default = async function afterPack(context) {
   if (context.electronPlatformName !== 'darwin') return;
 
+  // If CSC_LINK is set, electron-builder is signing with the stored
+  // certificate already. Don't clobber that with an ad-hoc signature.
+  if (process.env.CSC_LINK) {
+    console.log('[after-pack] CSC_LINK present — electron-builder handled signing');
+    return;
+  }
+
   const appName = context.packager.appInfo.productFilename;
   const appPath = path.join(context.appOutDir, `${appName}.app`);
 

@@ -77,6 +77,14 @@ jobs:
         run: npx electron-builder --mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Optional: stored self-signed cert for stable code signing across
+          # releases. When set, electron-builder signs with this identity so
+          # macOS TCC remembers Screen Recording grants between updates.
+          # When empty, scripts/after-pack.js falls back to ad-hoc signing.
+          # Generate with: bash scripts/make-codesign-cert.sh
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: List DMG files
         id: dmg

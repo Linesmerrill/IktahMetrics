@@ -173,9 +173,26 @@ so macOS will warn you on first launch. Two extra steps:
    xattr -dr com.apple.quarantine /Applications/IktahMetrics.app
    ```
 
-The release build is **ad-hoc codesigned** in CI, which gives the bundle
-a stable identity so TCC remembers your Screen Recording grant across
-launches *of the same release*. New releases re-prompt once.
+The release build is signed in CI. By default, the workflow does **ad-hoc
+codesigning** — the signature is derived from the app's contents, so it
+stays stable across launches of the same release but **changes between
+releases**. macOS TCC will then re-prompt for Screen Recording on every
+update.
+
+To make TCC grants persist across updates, store a **self-signed code
+signing certificate** in repo secrets — every release then shares an
+identity, and TCC remembers your grant across updates.
+
+```sh
+bash scripts/make-codesign-cert.sh
+# Add the printed CSC_LINK and CSC_KEY_PASSWORD to:
+#   github.com/Linesmerrill/IktahMetrics/settings/secrets/actions
+```
+
+The cert is self-signed (not from Apple), so the "unidentified developer"
+warning still appears once on first install — but **the permission loop
+on updates goes away** because TCC matches releases by signing identity,
+not by content hash.
 
 ## Permissions
 
@@ -187,14 +204,16 @@ Capturing the screen requires **Screen Recording** permission on macOS 10.15+.
 - In dev (`npm start`), permission is requested for **Electron** itself
   (or your terminal, depending on how Electron was launched). You may need
   to toggle it off/on once after the first prompt.
-- **Permission re-prompts in a loop?** That's TCC failing to match the
-  bundle's signature against its grant record. Reset the entry and try
-  again:
+- **Permission re-prompts in a loop after an update?** That's TCC
+  failing to match the new release's signature against the saved grant
+  (typical with ad-hoc-only signing — see [Installing the DMG](#installing-the-dmg)).
+  Reset the entry and clear the quarantine bit:
   ```sh
   tccutil reset ScreenCapture com.merrill.iktahmetrics
+  xattr -dr com.apple.quarantine /Applications/IktahMetrics.app
   ```
-  Then relaunch and grant once more. If it still loops, make sure the
-  app is in `/Applications` (not running from the DMG).
+  Then relaunch and grant once more. To avoid this on future updates,
+  set up a stored signing certificate as described above.
 
 The overlay window itself is excluded from screen captures
 (`NSWindow.sharingType = .none`), so its readout doesn't pollute the OCR
