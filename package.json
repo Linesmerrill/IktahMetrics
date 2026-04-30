@@ -1,7 +1,7 @@
 {
   "name": "idle-iktah-overlay",
   "productName": "IktahMetrics",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Always-on-top XP/sec overlay for Idle Iktah, using Apple Vision OCR",
   "main": "main.js",
   "private": true,
@@ -34,12 +34,19 @@
       {
         "from": "build/ocr",
         "to": "ocr",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["universal"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
       ],
       "category": "public.app-category.utilities",
       "hardenedRuntime": true,
