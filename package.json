@@ -45,7 +45,8 @@
         {
           "target": "dmg",
           "arch": [
-            "universal"
+            "arm64",
+            "x64"
           ]
         }
       ],
@@ -56,8 +57,7 @@
       "identity": null,
       "extendInfo": {
         "NSScreenCaptureUsageDescription": "IktahMetrics captures a small region of your screen to read XP and time numbers from Idle Iktah."
-      },
-      "x64ArchFiles": "Contents/Resources/ocr"
+      }
     },
     "dmg": {
       "writeUpdateInfo": false

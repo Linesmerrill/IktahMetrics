@@ -150,6 +150,14 @@ All under `~/Library/Application Support/IktahMetrics/`:
 
 ## Installing the DMG
 
+Each release ships **two DMGs** — pick the one matching your Mac's CPU:
+
+- `IktahMetrics-X.Y.Z-arm64.dmg` — Apple Silicon (M1 / M2 / M3 / M4)
+- `IktahMetrics-X.Y.Z.dmg` — Intel Mac (x64)
+
+Per-arch builds keep each download to ~200MB instead of ~425MB for a
+universal build (which would ship both runtimes inside one bundle).
+
 IktahMetrics isn't notarized by Apple (no Developer ID — that's $99/year),
 so macOS will warn you on first launch. Two extra steps:
 

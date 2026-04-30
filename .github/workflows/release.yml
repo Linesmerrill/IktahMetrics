@@ -78,14 +78,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Find DMG file
+      - name: List DMG files
         id: dmg
         run: |
-          DMG_PATH=$(find dist -name "*.dmg" -type f | head -1)
-          DMG_NAME=$(basename "$DMG_PATH")
-          echo "path=$DMG_PATH" >> $GITHUB_OUTPUT
-          echo "name=$DMG_NAME" >> $GITHUB_OUTPUT
-          echo "Found DMG: $DMG_PATH"
+          echo "Found DMGs:"
+          find dist -name "*.dmg" -type f -exec ls -lh {} \;
 
       - name: Generate release notes
         run: |
@@ -102,10 +99,13 @@ jobs:
           Always-on-top XP/sec overlay for Idle Iktah, with Apple Vision OCR.
 
           ### Installation
-          1. Download the `.dmg` file below
+          1. Download the right `.dmg`:
+             - **Apple Silicon (M1/M2/M3/M4)** → `*-arm64.dmg`
+             - **Intel Mac** → `*.dmg` (no arch suffix, x64 build)
           2. Open it and drag **IktahMetrics** to your Applications folder
-          3. Launch the app and grant **Screen Recording** permission on first run
-          4. Click the menu-bar icon → **Set Region…** to pick the activity card
+          3. Right-click the app → Open (it isn't notarized — see README)
+          4. Grant **Screen Recording** permission on first run
+          5. Click the menu-bar icon → **Track App Window…** to pick `idle_iktah`
 
           ### Changes
           EOF
@@ -122,7 +122,7 @@ jobs:
           body_path: release_notes.md
           draft: false
           prerelease: false
-          files: ${{ steps.dmg.outputs.path }}
+          files: dist/*.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
