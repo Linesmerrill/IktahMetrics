@@ -116,6 +116,29 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
+      - name: Notarize and staple DMGs
+        if: env.APPLE_ID != ''
+        run: |
+          # @electron/notarize crashes parsing Apple's HTTP errors, so we
+          # bypass it entirely: ship the DMG to Apple's notary service
+          # ourselves with xcrun notarytool, then staple the ticket so
+          # Gatekeeper accepts the file offline.
+          set -e
+          for dmg in dist/*.dmg; do
+            echo "==> Notarizing $dmg"
+            xcrun notarytool submit "$dmg" \
+              --apple-id "$APPLE_ID" \
+              --team-id "$APPLE_TEAM_ID" \
+              --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+              --wait
+            echo "==> Stapling $dmg"
+            xcrun stapler staple "$dmg"
+          done
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
       - name: List DMG files
         id: dmg
         run: |
