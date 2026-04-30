@@ -37,12 +37,16 @@ function normalizeOcr(text) {
     .replace(/[а-яА-ЯёЁ]/g, ch => CYRILLIC_TO_LATIN[ch] || ch);
 }
 
-const SKILL_ICONS = {
-  Attack: '⚔️', Strength: '💪', Defence: '🛡️', Defense: '🛡️', Health: '❤️',
-  Woodcutting: '🪓', Mining: '⛏️', Fishing: '🎣', Gathering: '🌿', Tracking: '👣',
-  Crafting: '🧵', Smithing: '🔨', Cooking: '🍳', Alchemy: '⚗️', Tailoring: '🪡',
-  Carpentry: '🪚', Community: '👥', Landkeeping: '🌾',
-};
+// Per-skill menu-bar icons live as template PNGs in assets/skill-icons/.
+// Generated from Font Awesome Free SVGs by scripts/build-skill-icons.js.
+function trayIconForSkill(skill) {
+  if (!skill) return null;
+  const base = path.join(__dirname, 'assets', 'skill-icons', `${skill}Template.png`);
+  if (!fs.existsSync(base)) return null;
+  const img = nativeImage.createFromPath(base);
+  img.setTemplateImage(true);
+  return img;
+}
 
 const regionFile = () => path.join(app.getPath('userData'), 'region.json');
 const overlayFile = () => path.join(app.getPath('userData'), 'overlay.json');
@@ -574,12 +578,19 @@ function stopPolling() {
 
 function updateTrayTitle() {
   if (!tray) return;
-  if (!polling) { tray.setTitle('XPS'); return; }
+  if (!polling) {
+    tray.setImage(nativeImage.createEmpty());
+    tray.setTitle('XPS');
+    return;
+  }
 
-  // Format: "🎣 · L37 · 1.06 xp/s" (each part dropped if missing).
+  // Skill icon as a template image alongside the title text. macOS auto-tints
+  // template images to match the menu bar foreground color, giving us a
+  // crisp white silhouette in dark mode and black in light mode.
+  const icon = trayIconForSkill(lastInfo?.skill);
+  tray.setImage(icon || nativeImage.createEmpty());
+
   const parts = [];
-  const icon = lastInfo?.skill ? SKILL_ICONS[lastInfo.skill] : null;
-  if (icon) parts.push(icon);
   if (lastInfo?.level != null) parts.push('L' + lastInfo.level);
   if (lastInfo?.rate != null) {
     const prefix = isStale() ? '~' : '';

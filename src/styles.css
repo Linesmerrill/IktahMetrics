@@ -31,14 +31,34 @@ html, body {
 #head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   font-size: clamp(10px, 1.9vh, 13px);
   color: #cdd0db;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
-#head #skill { color: #cdd0db; }
+#skill-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+#head #skill {
+  color: #cdd0db;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 #head #level { color: #9da1ad; font-weight: 500; }
+#skill-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  background-color: #cdd0db;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+#skill-icon.empty { display: none; }
 
 #rate {
   font-size: clamp(20px, 8vh, 60px);

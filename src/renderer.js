@@ -1,4 +1,5 @@
 const skillEl = document.getElementById('skill');
+const skillIconEl = document.getElementById('skill-icon');
 const levelEl = document.getElementById('level');
 const rateEl = document.getElementById('rate');
 const progressFill = document.getElementById('progress-fill');
@@ -7,12 +8,18 @@ const etaEl = document.getElementById('eta');
 const bestEl = document.getElementById('best');
 const statusEl = document.getElementById('status');
 
-const SKILL_ICONS = {
-  Attack: '⚔️', Strength: '💪', Defence: '🛡️', Defense: '🛡️', Health: '❤️',
-  Woodcutting: '🪓', Mining: '⛏️', Fishing: '🎣', Gathering: '🌿', Tracking: '👣',
-  Crafting: '🧵', Smithing: '🔨', Cooking: '🍳', Alchemy: '⚗️', Tailoring: '🪡',
-  Carpentry: '🪚', Community: '👥', Landkeeping: '🌾',
-};
+function setSkillIcon(skill) {
+  if (!skill) {
+    skillIconEl.classList.add('empty');
+    skillIconEl.style.webkitMaskImage = '';
+    skillIconEl.style.maskImage = '';
+    return;
+  }
+  skillIconEl.classList.remove('empty');
+  const url = `url('../assets/skill-icons/${skill}Template.png')`;
+  skillIconEl.style.webkitMaskImage = url;
+  skillIconEl.style.maskImage = url;
+}
 
 function fmt(n) {
   return Number(Math.round(n)).toLocaleString();
@@ -47,8 +54,8 @@ function setError(msg) {
 window.iktahmetrics.onUpdate((u) => {
   document.body.classList.toggle('extrapolated', !!u.extrapolated);
 
-  const icon = u.skill && SKILL_ICONS[u.skill] ? SKILL_ICONS[u.skill] + ' ' : '';
-  skillEl.textContent = u.skill ? icon + u.skill : '—';
+  setSkillIcon(u.skill);
+  skillEl.textContent = u.skill || '—';
   levelEl.textContent = (u.level != null) ? `L${u.level}` : '';
 
   switch (u.kind) {

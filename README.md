@@ -265,6 +265,14 @@ If something looks wrong, the tray menu has:
   `visibleOnFullScreen`, but Steam's exclusive fullscreen on some Macs
   hides all overlays. Switch the game to windowed/borderless.
 
+## Credits
+
+Skill icons are [Font Awesome Free 6](https://fontawesome.com/) glyphs,
+licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+(icons) and [SIL OFL 1.1](https://scripts.sil.org/OFL) (font). They're
+rendered as monochrome template PNGs by `scripts/build-skill-icons.js`
+so macOS can auto-tint them to the menu bar's foreground color.
+
 ## Why a Swift helper instead of Tesseract / a JS OCR lib?
 
 Vision's recognizer ships with macOS, has zero install cost, and handles
