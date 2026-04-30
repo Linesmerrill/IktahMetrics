@@ -158,29 +158,31 @@ Each release ships **two DMGs** — pick the one matching your Mac's CPU:
 Per-arch builds keep each download to ~200MB instead of ~425MB for a
 universal build (which would ship both runtimes inside one bundle).
 
-IktahMetrics isn't notarized by Apple (no Developer ID — that's $99/year),
-so macOS will warn you on first launch. Two extra steps:
+Releases are **signed with an Apple Developer ID and notarized by Apple**,
+so macOS Gatekeeper accepts the app without warnings and TCC permission
+grants persist across updates. To install:
 
 1. **Drag the `.app` to `/Applications`** before launching. Don't run it
    from the mounted DMG — macOS "translocates" apps run from disk images
    to a random temp path, which makes Screen Recording permission grants
    stick to the wrong location.
-2. On first launch macOS says *"…cannot be opened because it is from an
-   unidentified developer / could be malware"*. **Right-click → Open**
-   (or in System Settings → Privacy & Security, click **Open Anyway**).
-   Or, from a terminal:
-   ```sh
-   xattr -dr com.apple.quarantine /Applications/IktahMetrics.app
-   ```
+2. Double-click to launch. macOS verifies the notarization ticket
+   stapled to the DMG and opens the app without prompting.
+3. macOS will ask for **Screen Recording** permission on first capture.
+   Grant it once and it persists across all future updates.
 
-The release build is signed in CI. The signing path depends on which repo
-secrets are configured:
+### Building from source
 
-| Secrets configured                                                      | Result                                                                                |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| _(none)_                                                                | Ad-hoc signing only. Gatekeeper warns; TCC grants reset on every update.             |
-| `CSC_LINK` + `CSC_KEY_PASSWORD`                                         | Apple Developer ID signing. Gatekeeper still warns once; TCC grants persist.          |
-| `+ APPLE_ID` + `APPLE_ID_PASSWORD` + `APPLE_TEAM_ID`                    | Signed **and notarized**. No Gatekeeper warning at all; TCC grants persist.           |
+The release pipeline supports three signing tiers, picked automatically
+from which repo secrets are configured:
+
+| Secrets configured                                              | Result                                                                          |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| _(none)_                                                        | Ad-hoc signing. Gatekeeper warns; TCC grants reset on every update.            |
+| `CSC_LINK` + `CSC_KEY_PASSWORD`                                 | Apple Developer ID signing. Gatekeeper still warns once; TCC grants persist.    |
+| _… plus_ `APPLE_ID` + `APPLE_ID_PASSWORD` + `APPLE_TEAM_ID`     | Signed **and notarized**. No Gatekeeper warning at all; TCC grants persist.    |
+
+This repo's published releases are in the third tier.
 
 ### Setup (Developer ID signing)
 
@@ -224,16 +226,13 @@ Capturing the screen requires **Screen Recording** permission on macOS 10.15+.
 - In dev (`npm start`), permission is requested for **Electron** itself
   (or your terminal, depending on how Electron was launched). You may need
   to toggle it off/on once after the first prompt.
-- **Permission re-prompts in a loop after an update?** That's TCC
-  failing to match the new release's signature against the saved grant
-  (typical with ad-hoc-only signing — see [Installing the DMG](#installing-the-dmg)).
-  Reset the entry and clear the quarantine bit:
+- **Migrating from a pre-v0.1.16 install?** Older builds were ad-hoc
+  signed and have an incompatible TCC entry. Reset it once after
+  installing the first signed release:
   ```sh
   tccutil reset ScreenCapture com.merrill.iktahmetrics
-  xattr -dr com.apple.quarantine /Applications/IktahMetrics.app
   ```
-  Then relaunch and grant once more. To avoid this on future updates,
-  set up a stored signing certificate as described above.
+  Then relaunch and grant once more. From there, every update just works.
 
 The overlay window itself is excluded from screen captures
 (`NSWindow.sharingType = .none`), so its readout doesn't pollute the OCR

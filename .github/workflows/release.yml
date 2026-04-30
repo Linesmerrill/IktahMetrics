@@ -164,9 +164,15 @@ jobs:
              - **Apple Silicon (M1/M2/M3/M4)** → `*-arm64.dmg`
              - **Intel Mac** → `*.dmg` (no arch suffix, x64 build)
           2. Open it and drag **IktahMetrics** to your Applications folder
-          3. Right-click the app → Open (it isn't notarized — see README)
+          3. Double-click to launch (the build is signed with an Apple
+             Developer ID and notarized, so Gatekeeper will accept it)
           4. Grant **Screen Recording** permission on first run
           5. Click the menu-bar icon → **Track App Window…** to pick `idle_iktah`
+
+          > Migrating from an older ad-hoc-signed build? Run
+          > `tccutil reset ScreenCapture com.merrill.iktahmetrics` once
+          > before launching to clear the stale grant from the previous
+          > signing identity.
 
           ### Changes
           EOF
