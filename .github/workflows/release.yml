@@ -73,6 +73,24 @@ jobs:
       - name: Build OCR helper (universal binary)
         run: bash swift/build.sh
 
+      - name: Validate notarization credentials
+        if: env.APPLE_ID != ''
+        run: |
+          # Hit Apple's notary service directly so we see the real error
+          # message if APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID
+          # are wrong. @electron/notarize chokes parsing Apple's HTTP errors,
+          # so without this step a credential typo looks like a JSON parse
+          # crash instead of a clear "Unauthorized" message.
+          xcrun notarytool history \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            | head -10
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
       - name: Build DMG
         run: npx electron-builder --mac
         env:
