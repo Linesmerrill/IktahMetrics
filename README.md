@@ -10,6 +10,8 @@ OCR is done locally with Apple's [Vision framework](https://developer.apple.com/
 via a tiny Swift helper. No paid APIs, nothing leaves your machine.
 
 <img width="240" height="172" alt="image" src="https://github.com/user-attachments/assets/9acba18c-17b1-4a44-b8d7-acd07a3db556" />
+<img width="184" height="31" alt="image" src="https://github.com/user-attachments/assets/7481dd7e-9314-4447-bbd0-05f458020f9d" />
+
 <img width="397" height="293" alt="image" src="https://github.com/user-attachments/assets/a695a4fb-bbdf-4ccc-991f-34ee701d8580" />
 
 
