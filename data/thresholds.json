@@ -1,61 +1,11 @@
 {
   "_meta": {
-    "description": "Idle Iktah XP thresholds shared across IktahMetrics users. thresholds[skill][level] = total accumulated XP needed to reach that level. Used to compute within-level progress and ETA.",
-    "schemaVersion": 1,
+    "description": "Idle Iktah XP thresholds shared across IktahMetrics users. _default[level] = total accumulated XP needed to reach that level (applies to every skill). thresholds[skill][level] overrides _default when a specific skill diverges. Used to compute within-level progress and ETA.",
+    "schemaVersion": 2,
     "rawUrl": "https://raw.githubusercontent.com/Linesmerrill/IktahMetrics/main/data/thresholds.json",
     "contribute": "IktahMetrics menu → 'Copy Observed Thresholds' copies your local-only observations to the clipboard. Paste them into a PR / issue on https://github.com/Linesmerrill/IktahMetrics to add them here."
   },
-  "Fishing": {
-    "36": 18907,
-    "37": 20940,
-    "38": 23184,
-    "39": 25662,
-    "40": 28398,
-    "41": 31419,
-    "42": 34754,
-    "43": 38436,
-    "46": 51947,
-    "47": 57419
-  },
-  "Woodcutting": {
-    "37": 20940,
-    "38": 23184,
-    "39": 25662,
-    "40": 28398,
-    "41": 31419,
-    "42": 34754,
-    "43": 38436,
-    "44": 42502,
-    "45": 46991,
-    "46": 51947,
-    "47": 57419,
-    "48": 63461,
-    "49": 70132
-  },
-  "Mining": {
-    "39": 25662
-  },
-  "Gathering": {
-    "35": 17066
-  },
-  "Cooking": {
-    "20": 3388,
-    "21": 3804,
-    "22": 4264,
-    "23": 4772,
-    "24": 5333,
-    "25": 5952,
-    "26": 6636,
-    "27": 7391,
-    "28": 8224
-  },
-  "Smithing": {
-    "28": 8224
-  },
-  "Crafting": {
-    "27": 7391
-  },
-  "Carpentry": {
+  "_default": {
     "2": 63,
     "3": 133,
     "4": 210,
@@ -71,28 +21,30 @@
     "14": 1596,
     "15": 1826,
     "16": 2080,
-    "19": 3011
-  },
-  "Tailoring": {
-    "4": 210
-  },
-  "Alchemy": {
-    "4": 210
-  },
-  "Tracking": {
-    "7": 493
-  },
-  "Attack": {
-    "2": 63,
-    "4": 210,
-    "7": 493,
-    "11": 1029,
-    "39": 25662
-  },
-  "Community": {
-    "11": 1029
-  },
-  "Landkeeping": {
-    "2": 63
+    "19": 3011,
+    "20": 3388,
+    "21": 3804,
+    "22": 4264,
+    "23": 4772,
+    "24": 5333,
+    "25": 5952,
+    "26": 6636,
+    "27": 7391,
+    "28": 8224,
+    "35": 17066,
+    "36": 18907,
+    "37": 20940,
+    "38": 23184,
+    "39": 25662,
+    "40": 28398,
+    "41": 31419,
+    "42": 34754,
+    "43": 38436,
+    "44": 42502,
+    "45": 46991,
+    "46": 51947,
+    "47": 57419,
+    "48": 63461,
+    "49": 70132
   }
 }

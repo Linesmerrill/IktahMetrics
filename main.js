@@ -93,7 +93,9 @@ const saveSettings = (s) => writeJson(settingsFile(), s);
 // thresholds[skill][level] = total XP needed to reach that level. Learned
 // by observing that "Level N · X / T" means level N+1 requires T total. We
 // look up thresholds[skill][N] to compute within-level progress as
-// (curXp − prev) / (T − prev).
+// (curXp − prev) / (T − prev). The XP curve is shared across skills, so the
+// remote/bundled tables store a single _default[level] map, with per-skill
+// blocks reserved for skills that diverge from the default.
 //
 // Resolution order (most → least authoritative):
 //   1. Local observations  — userData/thresholds.json    (this device's plays)
@@ -144,14 +146,18 @@ async function fetchRemoteThresholds() {
 function getPrevLevelThreshold(skill, level) {
   return thresholds?.[skill]?.[level]
       ?? remoteThresholds?.[skill]?.[level]
+      ?? remoteThresholds?._default?.[level]
       ?? bundledThresholds?.[skill]?.[level]
+      ?? bundledThresholds?._default?.[level]
       ?? null;
 }
 function recordThreshold(skill, nextLevel, total) {
   if (!skill || !nextLevel || !total) return;
   const existing = thresholds?.[skill]?.[nextLevel]
                 ?? remoteThresholds?.[skill]?.[nextLevel]
-                ?? bundledThresholds?.[skill]?.[nextLevel];
+                ?? remoteThresholds?._default?.[nextLevel]
+                ?? bundledThresholds?.[skill]?.[nextLevel]
+                ?? bundledThresholds?._default?.[nextLevel];
   if (existing === total) return;
   if (!thresholds[skill]) thresholds[skill] = {};
   thresholds[skill][nextLevel] = total;
@@ -162,10 +168,13 @@ function localObservationsForSharing() {
   // exact diff a user would contribute back upstream.
   const out = {};
   for (const skill of Object.keys(thresholds)) {
+    if (skill.startsWith('_')) continue;
     for (const lvl of Object.keys(thresholds[skill])) {
       const v = thresholds[skill][lvl];
       const known = remoteThresholds?.[skill]?.[lvl]
-                 ?? bundledThresholds?.[skill]?.[lvl];
+                 ?? remoteThresholds?._default?.[lvl]
+                 ?? bundledThresholds?.[skill]?.[lvl]
+                 ?? bundledThresholds?._default?.[lvl];
       if (known === v) continue;
       if (!out[skill]) out[skill] = {};
       out[skill][lvl] = v;
