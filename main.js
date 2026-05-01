@@ -453,31 +453,36 @@ function resetBests() {
 
 let pollTimer = null;
 let lastRealAt = 0; // ms timestamp of last successful real OCR with a rate
-let lastSample = null; // most recent OCR sample (running or paused) — used to detect pause by checking whether curXp advances between ticks
+let lastSample = null;  // most recent OCR sample, used for advance detection
+let lastAdvance = null; // most recent sample where curXp grew, used to confirm "this skill is actively training"
 const STALE_MS = 2000;
 
 function isStale() {
   return lastRealAt === 0 || (Date.now() - lastRealAt) > STALE_MS;
 }
 
-// Idle Iktah shows a Play vs Pause button to indicate whether the visible
-// skill is actively training. The icon doesn't OCR cleanly, so we detect
-// pause behaviorally: if the same skill+level is observed twice but curXp
-// did not advance the way the displayed rate predicts, the skill is paused
-// (user is just viewing it). Returns false on the first sample of a new
-// skill — status is unconfirmed until we get a second sample to compare.
-function isRunning(info, prev, nowMs) {
-  if (!prev || !info?.skill) return false;
-  if (prev.skill !== info.skill || prev.level !== info.level) return false;
-  if (prev.curXp == null || info.curXp == null) return false;
-  const dt = (nowMs - prev.at) / 1000;
-  const rate = info.rate || prev.rate || 0;
-  const expected = rate * dt;
-  const actual = info.curXp - prev.curXp;
-  // If too little time has passed for a meaningful delta, fall back to a
-  // strict "did it move at all" check so we don't get stuck unconfirmed.
-  if (expected < 0.5) return actual > 0;
-  return actual >= 0.5 * expected;
+// Idle Iktah pays out XP in chunks at the end of each craft cycle (e.g. a
+// skill listed as "4 xp / 5.4 seconds" jumps curXp by 4 once every 5.4s
+// rather than gaining xp continuously), so we cannot demand an advance every
+// 1-second tick. The play/pause icon doesn't OCR cleanly, so we infer state
+// behaviorally with a window of 1.5x the displayed craft cycle.
+//
+// Returns the display-state for this OCR sample:
+//   'active'        — the visible skill is the one being trained
+//   'viewing-other' — a different skill is on screen; tracked one is still
+//                     assumed running unattended in the game
+//   'paused'        — the tracked skill itself stopped advancing
+function detectActiveState(info, nowMs) {
+  if (!info?.skill) return 'viewing-other';
+  if (!lastAdvance) return 'active'; // bootstrap: trust the first sample
+
+  const cycleSec = info.sec || lastSample?.sec || 6;
+  const window = Math.max(2000, cycleSec * 1500);
+
+  if (lastAdvance.skill === info.skill && lastAdvance.level === info.level) {
+    return ((nowMs - lastAdvance.at) <= window) ? 'active' : 'paused';
+  }
+  return 'viewing-other';
 }
 
 async function tryRealOcr() {
@@ -522,13 +527,31 @@ function projectFromLast() {
   const proj = { ...lastInfo };
   if (lastInfo.curXp != null && lastInfo.totalXp) {
     const projectedCur = lastInfo.curXp + lastInfo.rate * elapsed;
-    if (projectedCur >= lastInfo.totalXp) {
-      proj.curXp = lastInfo.totalXp;
+    let level = lastInfo.level;
+    let totalXp = lastInfo.totalXp;
+    let prevLevelXp = lastInfo.prevLevelXp ?? null;
+
+    // Walk forward through known thresholds as projection crosses level
+    // boundaries, so the displayed level + ETA stay accurate during
+    // long-running background tracking.
+    while (level != null && projectedCur >= totalXp) {
+      const nextTotal = getPrevLevelThreshold(lastInfo.skill, level + 2);
+      if (nextTotal == null || nextTotal <= totalXp) break;
+      prevLevelXp = totalXp;
+      level += 1;
+      totalXp = nextTotal;
+    }
+
+    if (projectedCur >= totalXp) {
+      proj.curXp = totalXp;
       proj.etaSec = 0;
     } else {
       proj.curXp = projectedCur;
-      proj.etaSec = (lastInfo.totalXp - projectedCur) / lastInfo.rate;
+      proj.etaSec = (totalXp - projectedCur) / lastInfo.rate;
     }
+    proj.level = level;
+    proj.totalXp = totalXp;
+    proj.prevLevelXp = prevLevelXp;
   } else {
     proj.etaSec = etaSeconds(lastInfo);
   }
@@ -543,16 +566,26 @@ async function tick() {
     if (result.ok) {
       const info = result.info;
       const now = Date.now();
-      const running = isRunning(info, lastSample, now);
+
+      const sameAsPrev = lastSample
+                      && lastSample.skill === info.skill
+                      && lastSample.level === info.level;
+      if (sameAsPrev && lastSample.curXp != null && info.curXp != null
+          && info.curXp > lastSample.curXp) {
+        lastAdvance = { skill: info.skill, level: info.level, curXp: info.curXp, at: now };
+      }
       lastSample = {
         skill: info.skill,
         level: info.level,
         curXp: info.curXp,
         rate: info.rate,
+        sec: info.sec,
         at: now,
       };
 
-      if (running) {
+      const state = detectActiveState(info, now);
+
+      if (state === 'active') {
         lastInfo = info;
         lastRealAt = now;
         recordRate(info.skill, info.rate);
@@ -562,30 +595,70 @@ async function tick() {
           ...info,
           etaSec: etaSeconds(info),
           skillBest: getSkillBest(info.skill),
+          state: 'active',
           extrapolated: false,
         });
         return;
       }
-      // Not running: paused (user viewing a different skill) or first sample
-      // of a new skill (status not yet confirmed). Do not overwrite tracked
-      // state — fall through to the projection path below so the previously-
-      // tracked running skill's values keep advancing on screen.
+
+      if (state === 'paused' && lastInfo?.rate != null) {
+        // Tracked skill itself stopped advancing — freeze the display at the
+        // last running snapshot rather than projecting forward. ETA pauses.
+        lastStatus = `${lastInfo.rate.toFixed(2)} xp/s · paused`;
+        pushUpdate({
+          kind: 'rate',
+          ...lastInfo,
+          etaSec: etaSeconds(lastInfo),
+          skillBest: getSkillBest(lastInfo.skill),
+          state: 'paused',
+          extrapolated: false,
+        });
+        return;
+      }
+
+      // 'viewing-other' — user clicked to a different skill while the tracked
+      // one keeps running unattended in the game. Project lastInfo forward
+      // (curXp climbs at rate, ETA counts down, level rolls over via known
+      // thresholds), and tell the UI to use the calmer "skill in background"
+      // styling rather than the OCR-failed "game in background" warning.
+      const proj = projectFromLast();
+      if (proj) {
+        lastStatus = `${proj.rate.toFixed(2)} xp/s · skill in background`;
+        pushUpdate({
+          kind: 'rate',
+          ...proj,
+          skillBest: getSkillBest(proj.skill),
+          state: 'viewing-other',
+          extrapolated: true,
+        });
+      } else {
+        // No prior tracked skill — just show what's currently visible.
+        pushUpdate({
+          kind: 'rate',
+          ...info,
+          etaSec: etaSeconds(info),
+          skillBest: getSkillBest(info.skill),
+          state: 'active',
+          extrapolated: false,
+        });
+      }
+      return;
     }
 
-    // OCR did not produce a fresh sample, or we're viewing a paused skill.
-    // Keep showing extrapolated values from the last running observation —
-    // don't surface "no match" or skill-switching noise to the user.
+    // OCR failed entirely (capture error, region occluded, game minimized).
+    // Project from the last running observation and warn that we're flying
+    // blind via the "game in background" styling.
     const proj = projectFromLast();
     if (proj) {
       lastStatus = `~${proj.rate.toFixed(2)} xp/s (estimated)`;
       pushUpdate({
         kind: 'rate',
         ...proj,
-        extrapolated: true,
         skillBest: getSkillBest(proj.skill),
+        state: 'background',
+        extrapolated: true,
       });
     } else {
-      // No prior sample to extrapolate from yet.
       lastStatus = result.reason || 'waiting';
       pushUpdate({
         kind: 'idle',

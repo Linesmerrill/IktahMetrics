@@ -87,6 +87,35 @@ body.extrapolated #progress-fill {
 body.extrapolated #eta { color: #ffd66e; opacity: 0.85; }
 body.extrapolated #status { color: #ffd66e; }
 
+/* Viewing another skill while the tracked one keeps training — calm purple
+   so the user knows tracking is fine, they're just on a different page. */
+body.state-viewing-other #card {
+  border-color: rgba(180, 151, 255, 0.22);
+}
+body.state-viewing-other #rate {
+  color: #b497ff;
+  text-shadow: 0 0 18px rgba(180, 151, 255, 0.20);
+}
+body.state-viewing-other #progress-fill {
+  background: linear-gradient(90deg, #b497ff, #8865d6);
+  opacity: 0.85;
+}
+body.state-viewing-other #eta { color: #b497ff; opacity: 0.9; }
+body.state-viewing-other #status { color: #b497ff; }
+
+/* Tracked skill itself paused — neutral gray, low energy, frozen. */
+body.state-paused #card { opacity: 0.78; }
+body.state-paused #rate {
+  color: #8a8d99;
+  text-shadow: none;
+}
+body.state-paused #progress-fill {
+  background: linear-gradient(90deg, #6b6f7d, #4d5161);
+  opacity: 0.6;
+}
+body.state-paused #eta { color: #8a8d99; }
+body.state-paused #status { color: #8a8d99; }
+
 #progress-row {
   display: flex;
   flex-direction: column;

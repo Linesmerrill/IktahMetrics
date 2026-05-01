@@ -51,8 +51,14 @@ function setError(msg) {
   rateEl.textContent = msg;
 }
 
+const STATE_CLASSES = ['state-active', 'state-viewing-other', 'state-background', 'state-paused'];
+
 window.iktahmetrics.onUpdate((u) => {
-  document.body.classList.toggle('extrapolated', !!u.extrapolated);
+  document.body.classList.remove(...STATE_CLASSES);
+  if (u.state) document.body.classList.add(`state-${u.state}`);
+  // Keep `extrapolated` class only for the genuine OCR-failure case so the
+  // existing yellow styling doesn't bleed onto the calmer viewing-other state.
+  document.body.classList.toggle('extrapolated', u.state === 'background');
 
   setSkillIcon(u.skill);
   skillEl.textContent = u.skill || '—';
@@ -60,7 +66,7 @@ window.iktahmetrics.onUpdate((u) => {
 
   switch (u.kind) {
     case 'rate':
-      if (u.extrapolated) {
+      if (u.state === 'background') {
         rateEl.className = 'extrapolated';
         rateEl.textContent = '~' + u.rate.toFixed(2) + ' xp/s';
       } else {
@@ -112,5 +118,13 @@ window.iktahmetrics.onUpdate((u) => {
     bestEl.textContent = 'best: —';
   }
 
-  statusEl.textContent = u.extrapolated ? 'estimated · game in background' : (u.statusMessage || '');
+  if (u.state === 'background') {
+    statusEl.textContent = 'estimated · game in background';
+  } else if (u.state === 'viewing-other') {
+    statusEl.textContent = 'skill in background';
+  } else if (u.state === 'paused') {
+    statusEl.textContent = 'paused';
+  } else {
+    statusEl.textContent = u.statusMessage || '';
+  }
 });
