@@ -453,10 +453,31 @@ function resetBests() {
 
 let pollTimer = null;
 let lastRealAt = 0; // ms timestamp of last successful real OCR with a rate
+let lastSample = null; // most recent OCR sample (running or paused) — used to detect pause by checking whether curXp advances between ticks
 const STALE_MS = 2000;
 
 function isStale() {
   return lastRealAt === 0 || (Date.now() - lastRealAt) > STALE_MS;
+}
+
+// Idle Iktah shows a Play vs Pause button to indicate whether the visible
+// skill is actively training. The icon doesn't OCR cleanly, so we detect
+// pause behaviorally: if the same skill+level is observed twice but curXp
+// did not advance the way the displayed rate predicts, the skill is paused
+// (user is just viewing it). Returns false on the first sample of a new
+// skill — status is unconfirmed until we get a second sample to compare.
+function isRunning(info, prev, nowMs) {
+  if (!prev || !info?.skill) return false;
+  if (prev.skill !== info.skill || prev.level !== info.level) return false;
+  if (prev.curXp == null || info.curXp == null) return false;
+  const dt = (nowMs - prev.at) / 1000;
+  const rate = info.rate || prev.rate || 0;
+  const expected = rate * dt;
+  const actual = info.curXp - prev.curXp;
+  // If too little time has passed for a meaningful delta, fall back to a
+  // strict "did it move at all" check so we don't get stuck unconfirmed.
+  if (expected < 0.5) return actual > 0;
+  return actual >= 0.5 * expected;
 }
 
 async function tryRealOcr() {
@@ -520,22 +541,40 @@ async function tick() {
   try {
     const result = await tryRealOcr();
     if (result.ok) {
-      lastInfo = result.info;
-      lastRealAt = Date.now();
-      recordRate(lastInfo.skill, lastInfo.rate);
-      lastStatus = `${lastInfo.rate.toFixed(2)} xp/s`;
-      pushUpdate({
-        kind: 'rate',
-        ...lastInfo,
-        etaSec: etaSeconds(lastInfo),
-        skillBest: getSkillBest(lastInfo.skill),
-        extrapolated: false,
-      });
-      return;
+      const info = result.info;
+      const now = Date.now();
+      const running = isRunning(info, lastSample, now);
+      lastSample = {
+        skill: info.skill,
+        level: info.level,
+        curXp: info.curXp,
+        rate: info.rate,
+        at: now,
+      };
+
+      if (running) {
+        lastInfo = info;
+        lastRealAt = now;
+        recordRate(info.skill, info.rate);
+        lastStatus = `${info.rate.toFixed(2)} xp/s`;
+        pushUpdate({
+          kind: 'rate',
+          ...info,
+          etaSec: etaSeconds(info),
+          skillBest: getSkillBest(info.skill),
+          extrapolated: false,
+        });
+        return;
+      }
+      // Not running: paused (user viewing a different skill) or first sample
+      // of a new skill (status not yet confirmed). Do not overwrite tracked
+      // state — fall through to the projection path below so the previously-
+      // tracked running skill's values keep advancing on screen.
     }
 
-    // OCR did not produce a fresh sample. Keep showing extrapolated values
-    // from the last good one — don't surface "no match" to the user.
+    // OCR did not produce a fresh sample, or we're viewing a paused skill.
+    // Keep showing extrapolated values from the last running observation —
+    // don't surface "no match" or skill-switching noise to the user.
     const proj = projectFromLast();
     if (proj) {
       lastStatus = `~${proj.rate.toFixed(2)} xp/s (estimated)`;
