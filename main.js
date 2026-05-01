@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage, clipboard, shell } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage, clipboard, shell, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -811,6 +811,25 @@ function rebuildMenu() {
         const out = path.join(os.tmpdir(), 'iktahmetrics-last-ocr.txt');
         fs.writeFileSync(out, lastOcrText || '(empty)');
         shell.openPath(out);
+      },
+    },
+    {
+      // capturePage() grabs the rendered framebuffer from inside Electron, so
+      // it bypasses the macOS NSWindow.sharingType=.none flag we set for OCR
+      // hygiene — the only way to screenshot the overlay short of disabling
+      // setContentProtection.
+      label: 'Save Overlay Screenshot…',
+      enabled: !!(overlayWindow && !overlayWindow.isDestroyed() && overlayWindow.isVisible()),
+      click: async () => {
+        try {
+          const img = await overlayWindow.capturePage();
+          const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+          const out = path.join(app.getPath('desktop'), `iktahmetrics-overlay-${stamp}.png`);
+          fs.writeFileSync(out, img.toPNG());
+          shell.showItemInFolder(out);
+        } catch (err) {
+          dialog.showErrorBox('Screenshot failed', err?.message || String(err));
+        }
       },
     },
     { type: 'separator' },

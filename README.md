@@ -9,10 +9,19 @@ one without doing the math.
 OCR is done locally with Apple's [Vision framework](https://developer.apple.com/documentation/vision)
 via a tiny Swift helper. No paid APIs, nothing leaves your machine.
 
-<img width="240" height="172" alt="image" src="https://github.com/user-attachments/assets/9acba18c-17b1-4a44-b8d7-acd07a3db556" />
-<img width="184" height="31" alt="image" src="https://github.com/user-attachments/assets/7481dd7e-9314-4447-bbd0-05f458020f9d" />
+<p align="center">
+  <img src="assets/tutorial/demo.gif" alt="IktahMetrics overlay demo" width="420" />
+  &nbsp;&nbsp;
+  <img src="assets/tutorial/menu-bar.png" alt="IktahMetrics menu bar dropdown" width="345" />
+</p>
 
-<img width="397" height="293" alt="image" src="https://github.com/user-attachments/assets/a695a4fb-bbdf-4ccc-991f-34ee701d8580" />
+<p align="center">
+  <img src="assets/tutorial/menu-bar-icon.png" alt="IktahMetrics live in the menu bar" width="220" />
+  &nbsp;&nbsp;
+  <img src="assets/tutorial/overlay.png" alt="IktahMetrics overlay window" width="240" />
+  <br/>
+  <em>Menu-bar readout · floating overlay window</em>
+</p>
 
 ## Stack
 
@@ -109,7 +118,7 @@ The moment a real sample lands, the values snap back to truth.
 
 ## XP thresholds (community-sourced)
 
-To compute *within-level* progress, the app needs to know the XP threshold
+To compute _within-level_ progress, the app needs to know the XP threshold
 that started the current level. It learns these from observation: when you
 see `Level N · X / T`, it records that level `N+1` requires `T` total XP.
 
@@ -121,7 +130,7 @@ Three-tier resolution at lookup time:
 3. **Bundled seed table** — shipped with the app
 
 Tray menu → **Share Observed Thresholds…** copies your local-only
-observations to the clipboard *and* opens a pre-filled GitHub issue at
+observations to the clipboard _and_ opens a pre-filled GitHub issue at
 this repo, so you can contribute back in one click. Once a threshold lands
 on `main`, it propagates to everyone on the next launch.
 
@@ -176,11 +185,11 @@ grants persist across updates. To install:
 The release pipeline supports three signing tiers, picked automatically
 from which repo secrets are configured:
 
-| Secrets configured                                              | Result                                                                          |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| _(none)_                                                        | Ad-hoc signing. Gatekeeper warns; TCC grants reset on every update.            |
-| `CSC_LINK` + `CSC_KEY_PASSWORD`                                 | Apple Developer ID signing. Gatekeeper still warns once; TCC grants persist.    |
-| _… plus_ `APPLE_ID` + `APPLE_ID_PASSWORD` + `APPLE_TEAM_ID`     | Signed **and notarized**. No Gatekeeper warning at all; TCC grants persist.    |
+| Secrets configured                                          | Result                                                                       |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| _(none)_                                                    | Ad-hoc signing. Gatekeeper warns; TCC grants reset on every update.          |
+| `CSC_LINK` + `CSC_KEY_PASSWORD`                             | Apple Developer ID signing. Gatekeeper still warns once; TCC grants persist. |
+| _… plus_ `APPLE_ID` + `APPLE_ID_PASSWORD` + `APPLE_TEAM_ID` | Signed **and notarized**. No Gatekeeper warning at all; TCC grants persist.  |
 
 This repo's published releases are in the third tier.
 
@@ -283,7 +292,7 @@ If something looks wrong, the tray menu has:
 - **Reveal Last Capture in Finder** — opens the most recent screen capture.
   Confirm what you actually captured.
 - **Save Last OCR Output…** — dumps Vision's recognized text for the last
-  tick to a temp file and opens it. The fastest way to see *why* a parse
+  tick to a temp file and opens it. The fastest way to see _why_ a parse
   failed.
 
 ## Troubleshooting
