@@ -1,7 +1,7 @@
 {
   "name": "idle-iktah-overlay",
   "productName": "IktahMetrics",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "description": "Always-on-top XP/sec overlay for Idle Iktah, using Apple Vision OCR",
   "main": "main.js",
   "private": true,
